@@ -1,0 +1,207 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id       Int      @id @default(autoincrement())
+  email    String   @unique
+  name     String?
+  password String   @default("")
+  role     String   @default("customer")
+  bookings Booking[]
+  reviews  Review[]
+}
+
+model Tour {
+  id                Int       @id @default(autoincrement())
+  title             String
+  slug              String    @unique
+  shortDescription  String?
+  description       String?
+  basePriceAdult    Float
+  basePriceChild    Float?
+  currency          String    @default("USD")
+  isActive          Boolean   @default(true)
+  duration          String?
+  locationId        Int?
+  location          Location? @relation(fields: [locationId], references: [id])
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  bookings          Booking[]
+  images            TourImage[]
+  itinerary         ItineraryItem[]
+  inclusions        TourInclusion[]
+  exclusions        TourExclusion[]
+  reviews           Review[]
+  videoUrl          String?
+  featureImageUrl   String?
+  address           String?
+  latitude          Float?
+  longitude         Float?
+  zoom              Int?
+  metaTitle         String?
+  metaDescription   String?
+  salePrice         Float?
+  faqs              TourFaq[]
+  surroundings      TourSurrounding[]
+  options           TourOption[]
+}
+
+model TourOption {
+  id                     Int                  @id @default(autoincrement())
+  tourId                 Int
+  tour                   Tour                 @relation(fields: [tourId], references: [id], onDelete: Cascade)
+  code                   String
+  name                   String
+  description            String?
+  type                   String
+  isDefault              Boolean              @default(false)
+  includesTransportation Boolean              @default(false)
+  includesTransfers      Boolean              @default(false)
+  includesEntranceFees   Boolean              @default(false)
+  currency               String               @default("USD")
+  isActive               Boolean              @default(true)
+  schedules              TourOptionSchedule[]
+}
+
+model TourOptionSchedule {
+  id            Int                     @id @default(autoincrement())
+  optionId      Int
+  option        TourOption              @relation(fields: [optionId], references: [id], onDelete: Cascade)
+  startDate     String
+  endDate       String?
+  daysOfWeek    String // Stored as JSON string or comma-separated
+  startTime     String
+  durationHours Float?
+  pricingTiers  TourOptionPricingTier[]
+}
+
+model TourOptionPricingTier {
+  id             Int                @id @default(autoincrement())
+  scheduleId     Int
+  schedule       TourOptionSchedule @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
+  label          String
+  guestType      String
+  minGuests      Int
+  maxGuests      Int
+  pricePerPerson Float
+}
+
+model TourFaq {
+  id        Int    @id @default(autoincrement())
+  tourId    Int
+  tour      Tour   @relation(fields: [tourId], references: [id], onDelete: Cascade)
+  question  String
+  answer    String
+}
+
+model TourSurrounding {
+  id        Int    @id @default(autoincrement())
+  tourId    Int
+  tour      Tour   @relation(fields: [tourId], references: [id], onDelete: Cascade)
+  name      String
+  content   String
+  distance  String
+  type      String // education, health, transportation
+}
+
+model TourImage {
+  id        Int    @id @default(autoincrement())
+  tourId    Int
+  tour      Tour   @relation(fields: [tourId], references: [id], onDelete: Cascade)
+  url       String
+  order     Int    @default(0)
+}
+
+model ItineraryItem {
+  id          Int    @id @default(autoincrement())
+  tourId      Int
+  tour        Tour   @relation(fields: [tourId], references: [id], onDelete: Cascade)
+  day         Int
+  title       String
+  description String
+  image       String?
+}
+
+model TourInclusion {
+  id        Int    @id @default(autoincrement())
+  tourId    Int
+  tour      Tour   @relation(fields: [tourId], references: [id], onDelete: Cascade)
+  item      String
+}
+
+model TourExclusion {
+  id        Int    @id @default(autoincrement())
+  tourId    Int
+  tour      Tour   @relation(fields: [tourId], references: [id], onDelete: Cascade)
+  item      String
+}
+
+model Booking {
+  id            Int      @id @default(autoincrement())
+  bookingCode   String   @unique
+  user          User     @relation(fields: [userId], references: [id])
+  userId        Int
+  tour          Tour     @relation(fields: [tourId], references: [id])
+  tourId        Int
+  date          DateTime
+  adults        Int
+  children      Int
+  subtotal      Float
+  total         Float
+  currency      String   @default("USD")
+  status        String   @default("pending_payment")
+  paymentStatus String   @default("unpaid")
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model Location {
+  id          Int        @id @default(autoincrement())
+  name        String
+  slug        String     @unique
+  description String?
+  image       String?
+  parentId    Int?
+  parent      Location?  @relation("LocationHierarchy", fields: [parentId], references: [id])
+  children    Location[] @relation("LocationHierarchy")
+  tours       Tour[]
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+}
+
+model Media {
+  id        Int      @id @default(autoincrement())
+  filename  String
+  path      String
+  mimetype  String
+  size      Int
+  createdAt DateTime @default(now())
+}
+
+model Page {
+  id          Int      @id @default(autoincrement())
+  title       String
+  slug        String   @unique
+  content     String?
+  isPublished Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Review {
+  id        Int      @id @default(autoincrement())
+  tourId    Int
+  tour      Tour     @relation(fields: [tourId], references: [id], onDelete: Cascade)
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  rating    Int
+  comment   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
